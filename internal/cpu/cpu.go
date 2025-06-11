@@ -80,11 +80,13 @@ func getCPUTimes() ([]uint64, []uint64) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		sum := 0
+		var sum uint64 = 0
 		if strings.HasPrefix(line, "cpu") {
 			parts := strings.Fields(line)
 			for i, part := range parts[1:] {
-				nval, err := strconv.Atoi(part)
+
+				nval, err := strconv.ParseUint(part, 10, 64)
+
 				if err != nil {
 					golog.Error(err.Error())
 					break
@@ -121,7 +123,7 @@ func NewCPU() *CPU {
 }
 
 func (c *CPU) Refresh() {
-	for i, core := range c.Cores {
+	for i, core := range drillCPUInfo() {
 		if freq, ok := core["cpu MHz"].(float64); ok {
 			c.Freq[i] = freq
 		}
@@ -130,7 +132,6 @@ func (c *CPU) Refresh() {
 
 func (c *CPU) UsageRefresh() {
 	idles, totals := getCPUTimes()
-	// Ensure Usage slice is the right length
 	if len(c.Usage) != len(idles) {
 		c.Usage = make([]float64, len(idles))
 	}
@@ -143,7 +144,6 @@ func (c *CPU) UsageRefresh() {
 		}
 		c.Usage[i] = 100.0 * (1.0 - float64(idleDelta)/float64(totalDelta))
 	}
-	// Update start values for next calculation
 	c.startIdles = idles
 	c.startTotals = totals
 }
